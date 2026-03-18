@@ -1,13 +1,16 @@
 """
 Data models for WAF Assessment Tool
 """
+
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
 
+
 class Pillar(str, Enum):
     """WAF Pillar enumeration"""
+
     RELIABILITY = "reliability"
     GOVERNANCE = "governance"
     COST = "cost"
@@ -16,6 +19,7 @@ class Pillar(str, Enum):
 
 class MetricStatus(str, Enum):
     """Metric implementation status"""
+
     PASS = "Pass"
     FAIL = "Fail"
     MET = "Met"
@@ -24,6 +28,7 @@ class MetricStatus(str, Enum):
 
 class Metric(BaseModel):
     """Individual WAF control metric"""
+
     waf_id: str = Field(..., description="WAF identifier (e.g., R-01-01)")
     principle: str = Field(..., description="WAF principle")
     best_practice: Optional[str] = Field(None, description="Best practice description")
@@ -31,9 +36,13 @@ class Metric(BaseModel):
     score_percentage: float = Field(..., description="Current score percentage")
     threshold_percentage: float = Field(..., description="Threshold percentage")
     threshold_met: bool = Field(..., description="Whether threshold is met")
-    implemented: MetricStatus = Field(..., description="Implementation status (Pass/Fail)")
-    current_percentage: Optional[float] = Field(None, description="Current percentage value")
-    
+    implemented: MetricStatus = Field(
+        ..., description="Implementation status (Pass/Fail)"
+    )
+    current_percentage: Optional[float] = Field(
+        None, description="Current percentage value"
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -43,77 +52,74 @@ class Metric(BaseModel):
                 "score_percentage": 85.5,
                 "threshold_percentage": 80.0,
                 "threshold_met": True,
-                "implemented": "Pass"
+                "implemented": "Pass",
             }
         }
 
 
 class PrincipleScore(BaseModel):
     """Principle-level completion score"""
+
     principle: str = Field(..., description="WAF principle name")
     completion_percent: float = Field(..., description="Completion percentage")
-    
+
     class Config:
         json_schema_extra = {
-            "example": {
-                "principle": "Design for failure",
-                "completion_percent": 75.0
-            }
+            "example": {"principle": "Design for failure", "completion_percent": 75.0}
         }
 
 
 class PillarScore(BaseModel):
     """Pillar-level assessment score"""
+
     pillar: Pillar = Field(..., description="Pillar name")
     completion_percent: float = Field(..., description="Overall completion percentage")
-    metrics: List[Metric] = Field(default_factory=list, description="Individual metrics")
-    principles: List[PrincipleScore] = Field(default_factory=list, description="Principle-level scores")
-    
+    metrics: List[Metric] = Field(
+        default_factory=list, description="Individual metrics"
+    )
+    principles: List[PrincipleScore] = Field(
+        default_factory=list, description="Principle-level scores"
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
                 "pillar": "reliability",
                 "completion_percent": 38.0,
                 "metrics": [],
-                "principles": []
+                "principles": [],
             }
         }
 
 
 class WAFScores(BaseModel):
     """Complete WAF assessment scores"""
+
     reliability: PillarScore = Field(..., description="Reliability pillar score")
     governance: PillarScore = Field(..., description="Governance pillar score")
     cost: PillarScore = Field(..., description="Cost pillar score")
     performance: PillarScore = Field(..., description="Performance pillar score")
-    summary: Dict[str, float] = Field(default_factory=dict, description="Summary scores")
-    timestamp: datetime = Field(default_factory=datetime.now, description="Assessment timestamp")
-    
+    summary: Dict[str, float] = Field(
+        default_factory=dict, description="Summary scores"
+    )
+    timestamp: datetime = Field(
+        default_factory=datetime.now, description="Assessment timestamp"
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
-                "reliability": {
-                    "pillar": "reliability",
-                    "completion_percent": 38.0
-                },
-                "governance": {
-                    "pillar": "governance",
-                    "completion_percent": 65.0
-                },
-                "cost": {
-                    "pillar": "cost",
-                    "completion_percent": 45.0
-                },
-                "performance": {
-                    "pillar": "performance",
-                    "completion_percent": 72.0
-                }
+                "reliability": {"pillar": "reliability", "completion_percent": 38.0},
+                "governance": {"pillar": "governance", "completion_percent": 65.0},
+                "cost": {"pillar": "cost", "completion_percent": 45.0},
+                "performance": {"pillar": "performance", "completion_percent": 72.0},
             }
         }
 
 
 class Recommendation(BaseModel):
     """Actionable recommendation for improving WAF scores"""
+
     waf_id: str = Field(..., description="WAF identifier")
     pillar: Pillar = Field(..., description="Pillar name")
     issue: str = Field(..., description="Issue description")
@@ -121,7 +127,7 @@ class Recommendation(BaseModel):
     action_items: List[str] = Field(default_factory=list, description="Action items")
     code_example: Optional[str] = Field(None, description="Code example")
     priority: int = Field(default=3, description="Priority (1=high, 3=low)")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -131,8 +137,8 @@ class Recommendation(BaseModel):
                 "recommendation": "Increase DLT usage to 30% or more",
                 "action_items": [
                     "Migrate existing pipelines to DLT",
-                    "Use DLT for new data quality checks"
+                    "Use DLT for new data quality checks",
                 ],
-                "priority": 1
+                "priority": 1,
             }
         }

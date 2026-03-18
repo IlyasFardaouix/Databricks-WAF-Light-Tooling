@@ -15,6 +15,7 @@ Credentials come exclusively from environment variables (injected by Databricks 
     WAF_CATALOG       – Unity Catalog name (set in app.yaml by install.ipynb)
     WAF_YAML_PATH     – optional override path to dashboard_queries.yaml
 """
+
 import argparse
 import json
 import os
@@ -41,6 +42,7 @@ except ImportError:
     sys.exit(1)
 
 import urllib3
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -50,24 +52,28 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # YAML discovery
 # ---------------------------------------------------------------------------
 
+
 def find_yaml(override=None):
     if override:
         if os.path.exists(override):
             return override
         raise FileNotFoundError(f"YAML not found at: {override}")
     candidates = [
-        os.environ.get('WAF_YAML_PATH', ''),
-        os.path.join(SCRIPT_DIR, 'dashboard_queries.yaml'),
+        os.environ.get("WAF_YAML_PATH", ""),
+        os.path.join(SCRIPT_DIR, "dashboard_queries.yaml"),
     ]
     for p in candidates:
         if p and os.path.exists(p):
             return os.path.abspath(p)
-    raise FileNotFoundError("Could not find dashboard_queries.yaml next to reload_data.py.")
+    raise FileNotFoundError(
+        "Could not find dashboard_queries.yaml next to reload_data.py."
+    )
 
 
 # ---------------------------------------------------------------------------
 # Warehouse discovery
 # ---------------------------------------------------------------------------
+
 
 def get_warehouse_id(host, token):
     resp = requests.get(
@@ -77,48 +83,51 @@ def get_warehouse_id(host, token):
         timeout=30,
     )
     resp.raise_for_status()
-    warehouses = resp.json().get('warehouses', [])
+    warehouses = resp.json().get("warehouses", [])
     if not warehouses:
         raise RuntimeError("No SQL warehouses found in this workspace.")
     for wh in warehouses:
-        if wh.get('state') in ('RUNNING', 'STOPPED'):
+        if wh.get("state") in ("RUNNING", "STOPPED"):
             print(f"  Using warehouse: {wh['name']} ({wh['id']})")
-            return wh['id']
+            return wh["id"]
     wh = warehouses[0]
     print(f"  Using warehouse: {wh['name']} ({wh['id']})")
-    return wh['id']
+    return wh["id"]
 
 
 # ---------------------------------------------------------------------------
 # SQL helpers
 # ---------------------------------------------------------------------------
 
+
 def substitute_date_params(sql):
     now = datetime.now()
-    date_end = now.strftime('%Y-%m-%d')
-    date_start = (now - timedelta(days=30)).strftime('%Y-%m-%d')
-    sql = sql.replace(':date_range_start', f"'{date_start}'")
-    sql = sql.replace(':date_range_end', f"'{date_end}'")
-    sql = sql.replace(':rollback_days', '30')
+    date_end = now.strftime("%Y-%m-%d")
+    date_start = (now - timedelta(days=30)).strftime("%Y-%m-%d")
+    sql = sql.replace(":date_range_start", f"'{date_start}'")
+    sql = sql.replace(":date_range_end", f"'{date_end}'")
+    sql = sql.replace(":rollback_days", "30")
     return sql
 
 
 def strip_trailing_semicolon(sql):
-    return sql.rstrip().rstrip(';').rstrip()
+    return sql.rstrip().rstrip(";").rstrip()
 
 
 def sanitize_col_name(name):
     import re as _re
-    cleaned = _re.sub(r'[^a-zA-Z0-9_]', '_', name)
-    cleaned = _re.sub(r'_+', '_', cleaned).strip('_')
+
+    cleaned = _re.sub(r"[^a-zA-Z0-9_]", "_", name)
+    cleaned = _re.sub(r"_+", "_", cleaned).strip("_")
     if not cleaned or cleaned[0].isdigit():
-        cleaned = 'col_' + cleaned
-    return cleaned or 'col'
+        cleaned = "col_" + cleaned
+    return cleaned or "col"
 
 
 # ---------------------------------------------------------------------------
 # Schema migration (one-time: old plain tables → _hist + views model)
 # ---------------------------------------------------------------------------
+
 
 def migrate_old_plain_tables(cursor, catalog):
     """
@@ -135,7 +144,9 @@ def migrate_old_plain_tables(cursor, catalog):
     )
     old_tables = [row[0] for row in cursor.fetchall()]
     if old_tables:
-        print(f"  Migrating {len(old_tables)} old plain table(s) → history model (one-time)...")
+        print(
+            f"  Migrating {len(old_tables)} old plain table(s) → history model (one-time)..."
+        )
         for t in old_tables:
             cursor.execute(f"DROP TABLE IF EXISTS `{catalog}`.`waf_cache`.`{t}`")
             print(f"  Dropped old table: {t}")
@@ -145,12 +156,13 @@ def migrate_old_plain_tables(cursor, catalog):
 # _run_log helpers
 # ---------------------------------------------------------------------------
 
+
 def ensure_run_log(cursor, catalog):
     """Create _run_log with INT run_id. Auto-migrates from old STRING schema."""
     try:
         cursor.execute(f"DESCRIBE TABLE `{catalog}`.`waf_cache`.`_run_log`")
         schema = {row[0]: row[1].lower() for row in cursor.fetchall()}
-        if schema.get('run_id', '') == 'string':
+        if schema.get("run_id", "") == "string":
             print("  Migrating _run_log: upgrading run_id STRING → INT")
             cursor.execute(f"DROP TABLE IF EXISTS `{catalog}`.`waf_cache`.`_run_log`")
     except Exception:
@@ -183,7 +195,9 @@ def insert_run_started(cursor, catalog, run_id, triggered_at):
     )
 
 
-def update_run_finished(cursor, catalog, run_id, finished_at, status, succeeded, failed):
+def update_run_finished(
+    cursor, catalog, run_id, finished_at, status, succeeded, failed
+):
     cursor.execute(
         f"UPDATE `{catalog}`.`waf_cache`.`_run_log` SET "
         f"  finished_at = TIMESTAMP('{finished_at}'),"
@@ -197,6 +211,7 @@ def update_run_finished(cursor, catalog, run_id, finished_at, status, succeeded,
 # ---------------------------------------------------------------------------
 # Append data + create view
 # ---------------------------------------------------------------------------
+
 
 def append_to_hist_table(cursor, catalog, table, sql, run_id, run_started_at):
     """
@@ -212,23 +227,21 @@ def append_to_hist_table(cursor, catalog, table, sql, run_id, run_started_at):
     )
 
     try:
-        cursor.execute(
-            f"INSERT INTO `{catalog}`.`waf_cache`.`{hist}`\n{wrapped}"
-        )
+        cursor.execute(f"INSERT INTO `{catalog}`.`waf_cache`.`{hist}`\n{wrapped}")
     except Exception as first_err:
         err_str = str(first_err)
-        if 'TABLE_OR_VIEW_NOT_FOUND' in err_str or 'Table or view not found' in err_str:
+        if "TABLE_OR_VIEW_NOT_FOUND" in err_str or "Table or view not found" in err_str:
             # First run — create the table
             cursor.execute(
                 f"CREATE TABLE `{catalog}`.`waf_cache`.`{hist}` AS\n{wrapped}"
             )
-        elif 'DELTA_INVALID_CHARACTERS_IN_COLUMN_NAMES' in err_str:
+        elif "DELTA_INVALID_CHARACTERS_IN_COLUMN_NAMES" in err_str:
             # Sanitize column names and retry
             tmp = f"_waf_tmp_{table}"
             cursor.execute(f"CREATE OR REPLACE TEMPORARY VIEW `{tmp}` AS\n{sql}")
             cursor.execute(f"SELECT * FROM `{tmp}` LIMIT 0")
             raw_cols = [desc[0] for desc in cursor.description]
-            renames = ', '.join(f'`{c}` AS `{sanitize_col_name(c)}`' for c in raw_cols)
+            renames = ", ".join(f"`{c}` AS `{sanitize_col_name(c)}`" for c in raw_cols)
             clean_sql = f"SELECT {renames} FROM `{tmp}`"
             clean_wrapped = (
                 f"SELECT _q.*,\n"
@@ -270,23 +283,24 @@ def create_latest_view(cursor, catalog, table):
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--yaml', help='Path to dashboard_queries.yaml')
-    parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument("--yaml", help="Path to dashboard_queries.yaml")
+    parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
     # Credentials from Databricks Apps environment only
-    host = os.environ.get('DATABRICKS_HOST', '').rstrip('/')
-    token = os.environ.get('DATABRICKS_TOKEN', '')
-    catalog = os.environ.get('WAF_CATALOG', 'main')
+    host = os.environ.get("DATABRICKS_HOST", "").rstrip("/")
+    token = os.environ.get("DATABRICKS_TOKEN", "")
+    catalog = os.environ.get("WAF_CATALOG", "main")
 
     if not host or not token:
         missing = []
         if not host:
-            missing.append('DATABRICKS_HOST')
+            missing.append("DATABRICKS_HOST")
         if not token:
-            missing.append('DATABRICKS_TOKEN')
+            missing.append("DATABRICKS_TOKEN")
         print(f"ERROR: Missing environment variable(s): {', '.join(missing)}")
         print("These are automatically injected by Databricks Apps.")
         print("If running locally, set them manually before calling this script.")
@@ -297,31 +311,35 @@ def main():
 
     yaml_path = find_yaml(args.yaml)
     print(f"YAML:      {yaml_path}")
-    with open(yaml_path, encoding='utf-8') as f:
+    with open(yaml_path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
-    datasets = data['datasets']
-    active = [d for d in datasets if not d.get('is_coming_soon')]
-    print(f"\nDatasets: {len(datasets)} total, {len(active)} active, "
-          f"{len(datasets) - len(active)} coming-soon (skipped)\n")
+    datasets = data["datasets"]
+    active = [d for d in datasets if not d.get("is_coming_soon")]
+    print(
+        f"\nDatasets: {len(datasets)} total, {len(active)} active, "
+        f"{len(datasets) - len(active)} coming-soon (skipped)\n"
+    )
 
     if args.dry_run:
         for ds in active:
-            print(f"-- {ds['display_name']} → {catalog}.waf_cache.{ds['table_name']}_hist")
-            print(substitute_date_params(ds['sql'])[:200])
+            print(
+                f"-- {ds['display_name']} → {catalog}.waf_cache.{ds['table_name']}_hist"
+            )
+            print(substitute_date_params(ds["sql"])[:200])
             print()
         return
 
     print("Discovering SQL warehouse...")
     warehouse_id = get_warehouse_id(host, token)
-    hostname = host.replace('https://', '').replace('http://', '')
+    hostname = host.replace("https://", "").replace("http://", "")
     http_path = f"/sql/1.0/warehouses/{warehouse_id}"
 
-    run_started_at = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    run_started_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     successes, failures = [], []
     run_id = None
     run_finished_at = run_started_at
-    final_status = 'failed'
+    final_status = "failed"
 
     db_conn = dbsql.connect(
         server_hostname=hostname,
@@ -345,14 +363,19 @@ def main():
 
             # --- Append data into _hist tables ---
             for i, ds in enumerate(active, 1):
-                name = ds['display_name']
-                table = ds['table_name']
+                name = ds["display_name"]
+                table = ds["table_name"]
                 t0 = time.time()
-                print(f"[{i:2d}/{len(active)}] {name} → {catalog}.waf_cache.{table}_hist")
+                print(
+                    f"[{i:2d}/{len(active)}] {name} → {catalog}.waf_cache.{table}_hist"
+                )
                 try:
-                    prepared_sql = strip_trailing_semicolon(substitute_date_params(ds['sql']))
-                    append_to_hist_table(cursor, catalog, table, prepared_sql,
-                                         run_id, run_started_at)
+                    prepared_sql = strip_trailing_semicolon(
+                        substitute_date_params(ds["sql"])
+                    )
+                    append_to_hist_table(
+                        cursor, catalog, table, prepared_sql, run_id, run_started_at
+                    )
                     elapsed = time.time() - t0
                     print(f"       ✓ {elapsed:.1f}s")
                     successes.append(table)
@@ -361,10 +384,19 @@ def main():
                     print(f"       ✗ FAILED ({elapsed:.1f}s): {exc}")
                     failures.append((name, str(exc)))
 
-            run_finished_at = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-            final_status = 'success' if not failures else 'partial' if successes else 'failed'
-            update_run_finished(cursor, catalog, run_id, run_finished_at,
-                                final_status, len(successes), len(failures))
+            run_finished_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            final_status = (
+                "success" if not failures else "partial" if successes else "failed"
+            )
+            update_run_finished(
+                cursor,
+                catalog,
+                run_id,
+                run_finished_at,
+                final_status,
+                len(successes),
+                len(failures),
+            )
 
             # --- Refresh views for succeeded tables ---
             if successes:
@@ -404,5 +436,5 @@ def main():
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

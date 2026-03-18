@@ -8,7 +8,7 @@ import streamlit as st
 st.set_page_config(
     page_title="WAF Assessment Dashboard",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 if "waf_page" not in st.session_state:
@@ -31,15 +31,16 @@ WORKSPACE_ID = "7474648347311915"
 EMBED_URL = f"{INSTANCE_URL}/embed/dashboardsv3/{DASHBOARD_ID}?o={WORKSPACE_ID}"
 
 # Reload job config — injected via app.yaml env vars at deploy time
-JOB_ID       = os.environ.get("WAF_JOB_ID", "")
+JOB_ID = os.environ.get("WAF_JOB_ID", "")
 WAREHOUSE_ID = os.environ.get("WAF_WAREHOUSE_ID", "")
-GENIE_URL    = os.environ.get("WAF_GENIE_URL", "")
+GENIE_URL = os.environ.get("WAF_GENIE_URL", "")
 
 
 def _get_ws_client():
     """Return a WorkspaceClient auto-configured from the runtime environment."""
     try:
         from databricks.sdk import WorkspaceClient
+
         return WorkspaceClient()
     except Exception:
         return None
@@ -54,6 +55,7 @@ def _load_run_info():
     if _wc:
         try:
             from databricks.sdk.service.sql import StatementState
+
             _stmt = (
                 f"SELECT run_id, triggered_at, finished_at, status, "
                 f"tables_succeeded, tables_failed "
@@ -66,13 +68,21 @@ def _load_run_info():
                 warehouse_id=WAREHOUSE_ID,
                 wait_timeout="10s",
             )
-            if (_r.status and _r.status.state == StatementState.SUCCEEDED
-                    and _r.result and _r.result.data_array):
+            if (
+                _r.status
+                and _r.status.state == StatementState.SUCCEEDED
+                and _r.result
+                and _r.result.data_array
+            ):
                 row = _r.result.data_array[0]
                 return {
-                    "run_id": row[0], "triggered_at": row[1], "finished_at": row[2],
-                    "status": row[3], "tables_succeeded": int(row[4] or 0),
-                    "tables_failed": int(row[5] or 0), "catalog": _cat,
+                    "run_id": row[0],
+                    "triggered_at": row[1],
+                    "finished_at": row[2],
+                    "status": row[3],
+                    "tables_succeeded": int(row[4] or 0),
+                    "tables_failed": int(row[5] or 0),
+                    "catalog": _cat,
                 }
         except Exception:
             pass
@@ -86,7 +96,7 @@ def _load_run_info():
 # Sidebar with explanations
 with st.sidebar:
     st.title("📖 WAF Guide")
-    
+
     category = st.selectbox(
         "Select category:",
         [
@@ -94,12 +104,12 @@ with st.sidebar:
             "🔐 Data & AI Governance",
             "💰 Cost Optimization",
             "⚡ Performance Efficiency",
-            "🛡️ Reliability"
-        ]
+            "🛡️ Reliability",
+        ],
     )
-    
+
     st.markdown("---")
-    
+
     if category == "📊 Summary":
         st.markdown("""
         ### WAF Assessment Overview
@@ -156,18 +166,21 @@ with st.sidebar:
         - Thresholds for each control
         - Specific actions if your score is low
         """)
-    
+
     elif category == "🔐 Data & AI Governance":
-        metric = st.selectbox("Select metric:", [
-            "🚨 Unused Tables",
-            "🔐 Unsecured Tables", 
-            "🔒 Sensitive Tables",
-            "✅ Active Tables",
-            "👥 Active Users",
-            "📊 Table Lineage",
-            "🏷️ Table Tagging"
-        ])
-        
+        metric = st.selectbox(
+            "Select metric:",
+            [
+                "🚨 Unused Tables",
+                "🔐 Unsecured Tables",
+                "🔒 Sensitive Tables",
+                "✅ Active Tables",
+                "👥 Active Users",
+                "📊 Table Lineage",
+                "🏷️ Table Tagging",
+            ],
+        )
+
         if metric == "🚨 Unused Tables":
             st.markdown("""
             ### Unused Tables
@@ -186,7 +199,7 @@ with st.sidebar:
             
             📚 [Cost Guide](https://docs.databricks.com/discover/pages/optimize-data-workloads-guide)
             """)
-        
+
         elif metric == "🔐 Unsecured Tables":
             st.markdown("""
             ### Unsecured Tables
@@ -210,7 +223,7 @@ with st.sidebar:
             
             📚 [Security PDF](https://www.databricks.com/sites/default/files/2024-08/azure-databricks-security-best-practices-threat-model.pdf)
             """)
-        
+
         elif metric == "🔒 Sensitive Tables":
             st.markdown("""
             ### Sensitive Tables
@@ -231,7 +244,7 @@ with st.sidebar:
             
             📚 [Masking Docs](https://docs.databricks.com/aws/en/data-governance/unity-catalog/column-masks.html)
             """)
-        
+
         elif metric == "✅ Active Tables":
             st.markdown("""
             ### Active Tables
@@ -248,7 +261,7 @@ with st.sidebar:
             
             📚 [Optimization](https://docs.databricks.com/aws/en/delta/optimize.html)
             """)
-        
+
         elif metric == "👥 Active Users":
             st.markdown("""
             ### Active Users
@@ -263,7 +276,7 @@ with st.sidebar:
             
             📚 [User Mgmt](https://docs.databricks.com/aws/en/admin/users-groups/index.html)
             """)
-        
+
         elif metric == "📊 Table Lineage":
             st.markdown("""
             ### Table Lineage
@@ -278,7 +291,7 @@ with st.sidebar:
             
             📚 [Lineage](https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-lineage.html)
             """)
-        
+
         else:  # Table Tagging
             st.markdown("""
             ### Table Tagging
@@ -299,7 +312,7 @@ with st.sidebar:
             
             📚 [Tags](https://docs.databricks.com/aws/en/data-governance/unity-catalog/tags.html)
             """)
-    
+
     elif category == "💰 Cost Optimization":
         st.markdown("""
         ### 💰 Cost Optimization Pillar - Score Calculation
@@ -323,19 +336,22 @@ with st.sidebar:
         
         ---
         """)
-        
-        metric = st.selectbox("Select metric:", [
-            "📦 Delta Table Formats (CO-01-01)",
-            "🖥️ SQL Warehouse Usage (CO-01-03)",
-            "🔄 Up-to-Date Runtimes (CO-01-04)",
-            "⚡ Serverless Usage (CO-01-06)",
-            "🎯 Photon Usage (CO-01-09)",
-            "📊 Compute Policies (CO-02-03)",
-            "💰 Cost Monitoring (CO-03-01)",
-            "🏷️ Cluster Tagging (CO-03-02)",
-            "📈 Cost Observability (CO-03-03)"
-        ])
-        
+
+        metric = st.selectbox(
+            "Select metric:",
+            [
+                "📦 Delta Table Formats (CO-01-01)",
+                "🖥️ SQL Warehouse Usage (CO-01-03)",
+                "🔄 Up-to-Date Runtimes (CO-01-04)",
+                "⚡ Serverless Usage (CO-01-06)",
+                "🎯 Photon Usage (CO-01-09)",
+                "📊 Compute Policies (CO-02-03)",
+                "💰 Cost Monitoring (CO-03-01)",
+                "🏷️ Cluster Tagging (CO-03-02)",
+                "📈 Cost Observability (CO-03-03)",
+            ],
+        )
+
         if metric == "📦 Delta Table Formats (CO-01-01)":
             st.markdown("""
             ### Performance Optimized Data Formats (CO-01-01)
@@ -396,7 +412,7 @@ with st.sidebar:
             
             📚 [Delta Best Practices](https://docs.databricks.com/aws/en/delta/best-practices.html) | [Convert to Delta](https://docs.databricks.com/aws/en/delta/convert-to-delta.html)
             """)
-        
+
         elif metric == "🔄 Jobs on All-Purpose Clusters":
             st.markdown("""
             ### Jobs on All-Purpose
@@ -421,7 +437,7 @@ with st.sidebar:
             
             📚 [Cluster Types](https://docs.databricks.com/aws/en/compute/configure.html)
             """)
-        
+
         elif metric == "🖥️ SQL vs All-Purpose":
             st.markdown("""
             ### SQL Workloads on All-Purpose
@@ -447,7 +463,7 @@ with st.sidebar:
             
             📚 [SQL Warehouses](https://docs.databricks.com/aws/en/sql/admin/sql-endpoints.html)
             """)
-        
+
         elif metric == "⚡ Serverless Adoption":
             st.markdown("""
             ### Serverless Adoption
@@ -476,7 +492,7 @@ with st.sidebar:
             
             📚 [Serverless](https://docs.databricks.com/aws/en/serverless-compute/index.html)
             """)
-        
+
         elif metric == "🎯 Photon Usage":
             st.markdown("""
             ### Photon Usage
@@ -506,7 +522,7 @@ with st.sidebar:
             
             📚 [Photon](https://docs.databricks.com/aws/en/runtime/photon.html)
             """)
-        
+
         elif metric == "📊 Cluster Utilization":
             st.markdown("""
             ### Cluster Utilization
@@ -532,7 +548,7 @@ with st.sidebar:
             
             📚 [Monitoring](https://docs.databricks.com/aws/en/clusters/cluster-metrics.html)
             """)
-        
+
         elif metric == "⏱️ Auto-Termination":
             st.markdown("""
             ### Auto-Termination
@@ -559,7 +575,7 @@ with st.sidebar:
             
             📚 [Auto-termination](https://docs.databricks.com/aws/en/clusters/auto-termination.html)
             """)
-        
+
         elif metric == "📈 Auto-Scaling":
             st.markdown("""
             ### Auto-Scaling
@@ -587,7 +603,7 @@ with st.sidebar:
             
             📚 [Auto-scaling](https://docs.databricks.com/aws/en/clusters/autoscaling.html)
             """)
-        
+
         elif metric == "💵 Spot Instances":
             st.markdown("""
             ### Spot Instance Usage
@@ -619,7 +635,7 @@ with st.sidebar:
             
             📚 [Spot Instances](https://docs.databricks.com/aws/en/clusters/spot-instances.html)
             """)
-        
+
         elif metric == "🏷️ Cost Tagging":
             st.markdown("""
             ### Cost Tagging
@@ -651,7 +667,7 @@ with st.sidebar:
             
             📚 [Tagging](https://docs.databricks.com/aws/en/admin/account-settings/tag-policies.html)
             """)
-        
+
         else:  # Billing & Chargeback
             st.markdown("""
             ### Billing & Chargeback
@@ -680,16 +696,19 @@ with st.sidebar:
             
             📚 [System Tables](https://docs.databricks.com/aws/en/admin/system-tables/billing.html)
             """)
-    
+
     elif category == "⚡ Performance Efficiency":
-        metric = st.selectbox("Select metric:", [
-            "⚡ Photon Workloads",
-            "📊 Cluster Performance",
-            "🐍 Python UDFs",
-            "🚀 Query Optimization",
-            "💾 Caching Strategy"
-        ])
-        
+        metric = st.selectbox(
+            "Select metric:",
+            [
+                "⚡ Photon Workloads",
+                "📊 Cluster Performance",
+                "🐍 Python UDFs",
+                "🚀 Query Optimization",
+                "💾 Caching Strategy",
+            ],
+        )
+
         if metric == "⚡ Photon Workloads":
             st.markdown("""
             ### Photon Workloads
@@ -711,7 +730,7 @@ with st.sidebar:
             
             📚 [Photon](https://docs.databricks.com/aws/en/runtime/photon.html)
             """)
-        
+
         elif metric == "📊 Cluster Performance":
             st.markdown("""
             ### Cluster Performance
@@ -741,7 +760,7 @@ with st.sidebar:
             
             📚 [Query Tuning](https://docs.databricks.com/aws/en/optimizations/index.html)
             """)
-        
+
         elif metric == "🐍 Python UDFs":
             st.markdown("""
             ### Python UDFs
@@ -776,7 +795,7 @@ with st.sidebar:
             
             📚 [UDF Performance](https://docs.databricks.com/aws/en/udf/python.html)
             """)
-        
+
         elif metric == "🚀 Query Optimization":
             st.markdown("""
             ### Query Optimization
@@ -813,7 +832,7 @@ with st.sidebar:
             
             📚 [Delta Optimization](https://docs.databricks.com/aws/en/delta/optimize.html)
             """)
-        
+
         else:  # Caching
             st.markdown("""
             ### Caching Strategy
@@ -841,7 +860,7 @@ with st.sidebar:
             
             📚 [Delta Cache](https://docs.databricks.com/aws/en/optimizations/delta-cache.html)
             """)
-    
+
     else:  # Reliability
         st.markdown("""
         ### 🛡️ Reliability Pillar - Score Calculation
@@ -865,18 +884,21 @@ with st.sidebar:
         
         ---
         """)
-        
-        metric = st.selectbox("Select metric:", [
-            "📦 Delta Table Format (R-01-01)",
-            "🔄 DLT Usage (R-01-03)",
-            "🤖 Model Serving (R-01-05)",
-            "⚡ Serverless/Managed (R-01-06)",
-            "🗄️ Unity Catalog (R-02-03)",
-            "✅ DLT Data Quality (R-02-04)",
-            "📈 Auto-Scaling Clusters (R-03-01)",
-            "🏭 Auto-Scaling Warehouses (R-03-02)"
-        ])
-        
+
+        metric = st.selectbox(
+            "Select metric:",
+            [
+                "📦 Delta Table Format (R-01-01)",
+                "🔄 DLT Usage (R-01-03)",
+                "🤖 Model Serving (R-01-05)",
+                "⚡ Serverless/Managed (R-01-06)",
+                "🗄️ Unity Catalog (R-02-03)",
+                "✅ DLT Data Quality (R-02-04)",
+                "📈 Auto-Scaling Clusters (R-03-01)",
+                "🏭 Auto-Scaling Warehouses (R-03-02)",
+            ],
+        )
+
         if metric == "📦 Delta Table Format (R-01-01)":
             st.markdown("""
             ### Delta/ICEBERG Format Adoption (R-01-01)
@@ -939,7 +961,7 @@ with st.sidebar:
             
             📚 [Delta Lake](https://docs.databricks.com/aws/en/delta/index.html) | [Convert to Delta](https://docs.databricks.com/aws/en/delta/convert-to-delta.html)
             """)
-        
+
         elif metric == "🔄 DLT Usage (R-01-03)":
             st.markdown("""
             ### Delta Live Tables Usage (R-01-03)
@@ -1007,7 +1029,7 @@ with st.sidebar:
             
             📚 [Delta Live Tables](https://docs.databricks.com/aws/en/delta-live-tables/index.html) | [DLT Best Practices](https://docs.databricks.com/aws/en/delta-live-tables/best-practices.html)
             """)
-        
+
         elif metric == "🤖 Model Serving (R-01-05)":
             st.markdown("""
             ### Model Serving Usage (R-01-05)
@@ -1070,7 +1092,7 @@ with st.sidebar:
             
             📚 [Model Serving](https://docs.databricks.com/aws/en/machine-learning/model-serving/index.html) | [MLflow Models](https://docs.databricks.com/aws/en/machine-learning/mlflow/index.html)
             """)
-        
+
         elif metric == "⚡ Serverless/Managed (R-01-06)":
             st.markdown("""
             ### Serverless/Managed Compute Usage (R-01-06)
@@ -1124,7 +1146,7 @@ with st.sidebar:
             
             📚 [Serverless Compute](https://docs.databricks.com/aws/en/serverless-compute/index.html) | [SQL Warehouses](https://docs.databricks.com/aws/en/sql/admin/sql-endpoints.html)
             """)
-        
+
         elif metric == "🗄️ Unity Catalog (R-02-03)":
             st.markdown("""
             ### Unity Catalog Metastore (R-02-03)
@@ -1179,7 +1201,7 @@ with st.sidebar:
             
             📚 [Unity Catalog](https://docs.databricks.com/aws/en/data-governance/unity-catalog/index.html) | [Migration Guide](https://docs.databricks.com/aws/en/data-governance/unity-catalog/get-started.html)
             """)
-        
+
         elif metric == "✅ DLT Data Quality (R-02-04)":
             st.markdown("""
             ### DLT for Data Quality (R-02-04)
@@ -1238,7 +1260,7 @@ with st.sidebar:
             
             📚 [DLT Data Quality](https://docs.databricks.com/aws/en/delta-live-tables/expectations.html) | [Data Quality Best Practices](https://docs.databricks.com/aws/en/delta-live-tables/best-practices.html)
             """)
-        
+
         elif metric == "📈 Auto-Scaling Clusters (R-03-01)":
             st.markdown("""
             ### Auto-Scaling Clusters (R-03-01)
@@ -1298,7 +1320,7 @@ with st.sidebar:
             
             📚 [Auto-Scaling](https://docs.databricks.com/aws/en/clusters/configure.html#autoscaling) | [Cluster Configuration](https://docs.databricks.com/aws/en/clusters/configure.html)
             """)
-        
+
         elif metric == "🏭 Auto-Scaling Warehouses (R-03-02)":
             st.markdown("""
             ### Auto-Scaling SQL Warehouses (R-03-02)
@@ -1372,7 +1394,9 @@ if st.session_state.waf_page == "progress":
             pass
         st.rerun()
     if not WAREHOUSE_ID:
-        st.warning("No warehouse configured (WAF_WAREHOUSE_ID). Run install and set app env vars.")
+        st.warning(
+            "No warehouse configured (WAF_WAREHOUSE_ID). Run install and set app env vars."
+        )
     else:
         _wc = _get_ws_client()
         if not _wc:
@@ -1380,6 +1404,7 @@ if st.session_state.waf_page == "progress":
         else:
             try:
                 from databricks.sdk.service.sql import StatementState
+
                 _stmt = (
                     f"SELECT r.run_id, r.triggered_at, ROUND(avg_score.overall_score, 2) AS overall_score "
                     f"FROM `{_catalog}`.`{_schema}`.`_run_log` r "
@@ -1396,25 +1421,47 @@ if st.session_state.waf_page == "progress":
                     warehouse_id=WAREHOUSE_ID,
                     wait_timeout="20s",
                 )
-                if _r.status and _r.status.state == StatementState.SUCCEEDED and _r.result and _r.result.data_array:
+                if (
+                    _r.status
+                    and _r.status.state == StatementState.SUCCEEDED
+                    and _r.result
+                    and _r.result.data_array
+                ):
                     rows = _r.result.data_array
                     cols = None
                     for _src in (_r.result, _r):
-                        if getattr(_src, "manifest", None) and getattr(_src.manifest, "schema", None) and getattr(_src.manifest.schema, "columns", None):
-                            cols = [c.name for c in (_src.manifest.schema.columns or [])]
+                        if (
+                            getattr(_src, "manifest", None)
+                            and getattr(_src.manifest, "schema", None)
+                            and getattr(_src.manifest.schema, "columns", None)
+                        ):
+                            cols = [
+                                c.name for c in (_src.manifest.schema.columns or [])
+                            ]
                             break
                     if not cols and rows:
-                        cols = ["run_id", "triggered_at", "overall_score"] if len(rows[0]) == 3 else [f"col{i}" for i in range(len(rows[0]))]
+                        cols = (
+                            ["run_id", "triggered_at", "overall_score"]
+                            if len(rows[0]) == 3
+                            else [f"col{i}" for i in range(len(rows[0]))]
+                        )
                     import pandas as pd
+
                     labels = []
                     scores = []
-                    for row in (rows or []):
+                    for row in rows or []:
                         run_id, triggered_at_val, score = row[0], row[1], row[2]
-                        labels.append(triggered_at_val[:19] if triggered_at_val else str(run_id))
+                        labels.append(
+                            triggered_at_val[:19] if triggered_at_val else str(run_id)
+                        )
                         scores.append(float(score) if score is not None else 0)
                     if rows:
-                        _progress_df = pd.DataFrame({"Run time": labels, "Score (%)": scores})
-                        _progress_df["Score (%)"] = _progress_df["Score (%)"].astype(float)
+                        _progress_df = pd.DataFrame(
+                            {"Run time": labels, "Score (%)": scores}
+                        )
+                        _progress_df["Score (%)"] = _progress_df["Score (%)"].astype(
+                            float
+                        )
                         _n_runs = len(rows)
                         _latest = scores[-1] if scores else 0
                         _p1, _p2, _p3 = st.columns(3)
@@ -1423,13 +1470,28 @@ if st.session_state.waf_page == "progress":
                         with _p2:
                             st.metric("Latest score", f"{_latest:.1f}%")
                         with _p3:
-                            st.metric("Trend", f"{(scores[-1] - scores[0]):.1f}%" if len(scores) > 1 else "—", delta="vs first run" if len(scores) > 1 else None, delta_color="off")
+                            st.metric(
+                                "Trend",
+                                (
+                                    f"{(scores[-1] - scores[0]):.1f}%"
+                                    if len(scores) > 1
+                                    else "—"
+                                ),
+                                delta="vs first run" if len(scores) > 1 else None,
+                                delta_color="off",
+                            )
                         st.line_chart(_progress_df.set_index("Run time"), y="Score (%)")
-                        st.caption("Overall WAF score (average of 4 pillars) per Reload Data run.")
+                        st.caption(
+                            "Overall WAF score (average of 4 pillars) per Reload Data run."
+                        )
                     else:
-                        st.info("No completed runs yet. Run Reload Data to populate history.")
+                        st.info(
+                            "No completed runs yet. Run Reload Data to populate history."
+                        )
                 else:
-                    st.info("No run history with scores. Run Reload Data and ensure waf_total_percentage_across_pillars_hist exists.")
+                    st.info(
+                        "No run history with scores. Run Reload Data and ensure waf_total_percentage_across_pillars_hist exists."
+                    )
             except Exception as e:
                 st.error(f"Failed to load progress: {e}")
     st.stop()
@@ -1447,7 +1509,9 @@ if st.session_state.waf_page == "recommendations":
             pass
         st.rerun()
     if not WAREHOUSE_ID:
-        st.warning("No warehouse configured (WAF_WAREHOUSE_ID). Run install and set app env vars.")
+        st.warning(
+            "No warehouse configured (WAF_WAREHOUSE_ID). Run install and set app env vars."
+        )
     else:
         _wc = _get_ws_client()
         if not _wc:
@@ -1455,31 +1519,60 @@ if st.session_state.waf_page == "recommendations":
         else:
             try:
                 from databricks.sdk.service.sql import StatementState
+
                 _stmt = f"SELECT waf_id, pillar_name, principle, best_practice, score_percentage, control_threshold_pct, recommendation_if_not_met FROM `{_catalog}`.`{_schema}`.waf_recommendations_not_met ORDER BY pillar_name, waf_id"
                 _r = _wc.statement_execution.execute_statement(
                     statement=_stmt,
                     warehouse_id=WAREHOUSE_ID,
                     wait_timeout="30s",
                 )
-                if _r.status and _r.status.state == StatementState.SUCCEEDED and _r.result and _r.result.data_array:
+                if (
+                    _r.status
+                    and _r.status.state == StatementState.SUCCEEDED
+                    and _r.result
+                    and _r.result.data_array
+                ):
                     rows = _r.result.data_array
                     # Column names: manifest may be on result or on response; SDK versions vary
                     cols = None
                     for _src in (_r.result, _r):
-                        if getattr(_src, "manifest", None) and getattr(_src.manifest, "schema", None) and getattr(_src.manifest.schema, "columns", None):
-                            cols = [c.name for c in (_src.manifest.schema.columns or [])]
+                        if (
+                            getattr(_src, "manifest", None)
+                            and getattr(_src.manifest, "schema", None)
+                            and getattr(_src.manifest.schema, "columns", None)
+                        ):
+                            cols = [
+                                c.name for c in (_src.manifest.schema.columns or [])
+                            ]
                             break
                     if not cols and rows:
                         _n = len(rows[0]) if rows else 0
-                        _known = ["waf_id", "pillar_name", "principle", "best_practice", "score_percentage", "control_threshold_pct", "recommendation_if_not_met"]
-                        cols = _known if _n == len(_known) else [f"col{i}" for i in range(_n)]
+                        _known = [
+                            "waf_id",
+                            "pillar_name",
+                            "principle",
+                            "best_practice",
+                            "score_percentage",
+                            "control_threshold_pct",
+                            "recommendation_if_not_met",
+                        ]
+                        cols = (
+                            _known
+                            if _n == len(_known)
+                            else [f"col{i}" for i in range(_n)]
+                        )
                     import pandas as pd
-                    _df = pd.DataFrame(rows, columns=cols) if cols else pd.DataFrame(rows)
+
+                    _df = (
+                        pd.DataFrame(rows, columns=cols) if cols else pd.DataFrame(rows)
+                    )
 
                     # ---- Beautiful HTML: one card per waf_id with recommendation text ----
                     import html as _html_mod
+
                     def _html_esc(s):
                         return _html_mod.escape(str(s)) if s is not None else ""
+
                     def _strip_platform(s):
                         if s is None:
                             return ""
@@ -1498,15 +1591,28 @@ if st.session_state.waf_page == "recommendations":
                     _html_parts = [_card_css]
                     for _, row in _df.iterrows():
                         waf_id = _html_esc((str(row.get("waf_id", "")).strip() or "—"))
-                        pillar = _html_esc(_strip_platform(row.get("pillar_name")) or "—")
-                        principle = _html_esc(_strip_platform(row.get("principle")) or "—")
-                        best_practice = _html_esc(_strip_platform(row.get("best_practice")) or "—")
-                        rec = _html_esc(_strip_platform(row.get("recommendation_if_not_met")) or "(No recommendation)")
+                        pillar = _html_esc(
+                            _strip_platform(row.get("pillar_name")) or "—"
+                        )
+                        principle = _html_esc(
+                            _strip_platform(row.get("principle")) or "—"
+                        )
+                        best_practice = _html_esc(
+                            _strip_platform(row.get("best_practice")) or "—"
+                        )
+                        rec = _html_esc(
+                            _strip_platform(row.get("recommendation_if_not_met"))
+                            or "(No recommendation)"
+                        )
                         score = row.get("score_percentage")
                         thresh = row.get("control_threshold_pct")
                         score_str = ""
                         if score is not None or thresh is not None:
-                            score_str = f' <span class="waf-rec-score">Score: {score}% / Threshold: {thresh}%</span>' if thresh is not None else f' <span class="waf-rec-score">Score: {score}%</span>'
+                            score_str = (
+                                f' <span class="waf-rec-score">Score: {score}% / Threshold: {thresh}%</span>'
+                                if thresh is not None
+                                else f' <span class="waf-rec-score">Score: {score}%</span>'
+                            )
                         _html_parts.append(
                             f'<div class="waf-rec-card">'
                             f'<div class="waf-id">{waf_id}{score_str}</div>'
@@ -1514,7 +1620,7 @@ if st.session_state.waf_page == "recommendations":
                             f'<div class="waf-meta"><strong>Best practice:</strong> {best_practice}</div>'
                             f'<div class="waf-rec-label">Recommendations</div>'
                             f'<div class="waf-rec-text">{rec}</div>'
-                            f'</div>'
+                            f"</div>"
                         )
                     st.markdown("\n".join(_html_parts), unsafe_allow_html=True)
 
@@ -1524,8 +1630,16 @@ if st.session_state.waf_page == "recommendations":
                             return ""
                         s = str(s)
                         replacements = (
-                            ("—", "-"), ("–", "-"), ("\"", '"'), ("\"", '"'), ("'", "'"), ("'", "'"),
-                            ("…", "..."), ("\u00a0", " "), ("\u2014", "-"), ("\u2013", "-"),
+                            ("—", "-"),
+                            ("–", "-"),
+                            ('"', '"'),
+                            ('"', '"'),
+                            ("'", "'"),
+                            ("'", "'"),
+                            ("…", "..."),
+                            ("\u00a0", " "),
+                            ("\u2014", "-"),
+                            ("\u2013", "-"),
                         )
                         for a, b in replacements:
                             s = s.replace(a, b)
@@ -1533,23 +1647,40 @@ if st.session_state.waf_page == "recommendations":
 
                     def _build_recommendations_pdf(pdf_date):
                         from fpdf import FPDF
+
                         pdf = FPDF()
                         pdf.set_auto_page_break(True, margin=12)
                         pdf.set_margins(14, 12, 14)
                         pdf.add_page()
                         # Title
                         pdf.set_font("Helvetica", "B", 16)
-                        pdf.cell(0, 10, _pdf_sanitize("WAF Assessment - Recommendations (Not Met)"), ln=True)
+                        pdf.cell(
+                            0,
+                            10,
+                            _pdf_sanitize("WAF Assessment - Recommendations (Not Met)"),
+                            ln=True,
+                        )
                         pdf.set_font("Helvetica", "", 9)
-                        pdf.cell(0, 6, _pdf_sanitize(f"Workspace: {WORKSPACE_ID}  |  Date: {pdf_date}  |  Catalog: {_catalog}.{_schema}"), ln=True)
+                        pdf.cell(
+                            0,
+                            6,
+                            _pdf_sanitize(
+                                f"Workspace: {WORKSPACE_ID}  |  Date: {pdf_date}  |  Catalog: {_catalog}.{_schema}"
+                            ),
+                            ln=True,
+                        )
                         pdf.ln(2)
                         pdf.set_draw_color(200, 200, 200)
                         pdf.line(14, pdf.get_y(), pdf.w - 14, pdf.get_y())
                         pdf.ln(6)
                         for _, row in _df.iterrows():
                             waf_id = _pdf_sanitize(str(row.get("waf_id", "")))
-                            pillar = _pdf_sanitize(_strip_platform(row.get("pillar_name", "")))
-                            principle = _pdf_sanitize(_strip_platform(row.get("principle", "")))
+                            pillar = _pdf_sanitize(
+                                _strip_platform(row.get("pillar_name", ""))
+                            )
+                            principle = _pdf_sanitize(
+                                _strip_platform(row.get("principle", ""))
+                            )
                             score = row.get("score_percentage")
                             thresh = row.get("control_threshold_pct")
                             score_txt = "N/A"
@@ -1557,15 +1688,28 @@ if st.session_state.waf_page == "recommendations":
                                 score_txt = f"{score}% / {thresh}%"
                             elif score is not None:
                                 score_txt = f"{score}%"
-                            rec = _pdf_sanitize(_strip_platform(row.get("recommendation_if_not_met", "")))[:2000]
+                            rec = _pdf_sanitize(
+                                _strip_platform(
+                                    row.get("recommendation_if_not_met", "")
+                                )
+                            )[:2000]
                             # Control header
                             pdf.set_font("Helvetica", "B", 11)
                             pdf.set_fill_color(240, 248, 255)
                             pdf.cell(0, 7, f"  {waf_id}", ln=True, fill=True)
                             pdf.set_font("Helvetica", "", 9)
                             pdf.cell(0, 5, _pdf_sanitize(f"Pillar: {pillar}"), ln=True)
-                            pdf.cell(0, 5, _pdf_sanitize(f"Principle: {principle}"), ln=True)
-                            pdf.cell(0, 5, _pdf_sanitize(f"Current score / Threshold: {score_txt}"), ln=True)
+                            pdf.cell(
+                                0, 5, _pdf_sanitize(f"Principle: {principle}"), ln=True
+                            )
+                            pdf.cell(
+                                0,
+                                5,
+                                _pdf_sanitize(
+                                    f"Current score / Threshold: {score_txt}"
+                                ),
+                                ln=True,
+                            )
                             pdf.set_font("Helvetica", "B", 9)
                             pdf.cell(0, 5, "Recommendations:", ln=True)
                             pdf.set_font("Helvetica", "", 9)
@@ -1575,19 +1719,34 @@ if st.session_state.waf_page == "recommendations":
                         return bytes(out) if not isinstance(out, bytes) else out
 
                     from datetime import datetime as _dt
+
                     _pdf_date = _dt.utcnow().strftime("%Y-%m-%d")
                     _pdf_bytes = _build_recommendations_pdf(_pdf_date)
-                    _pdf_filename = f"WAF_ASSESSMENT_Recommendation_{WORKSPACE_ID}_{_pdf_date}.pdf"
-                    st.download_button("Export to PDF", data=_pdf_bytes, file_name=_pdf_filename, mime="application/pdf", type="primary", use_container_width=False, key="pdf_export")
+                    _pdf_filename = (
+                        f"WAF_ASSESSMENT_Recommendation_{WORKSPACE_ID}_{_pdf_date}.pdf"
+                    )
+                    st.download_button(
+                        "Export to PDF",
+                        data=_pdf_bytes,
+                        file_name=_pdf_filename,
+                        mime="application/pdf",
+                        type="primary",
+                        use_container_width=False,
+                        key="pdf_export",
+                    )
                 else:
-                    st.info("No rows returned. Run Reload Data and ensure the view `waf_recommendations_not_met` exists.")
+                    st.info(
+                        "No rows returned. Run Reload Data and ensure the view `waf_recommendations_not_met` exists."
+                    )
             except Exception as e:
                 st.error(f"Failed to load recommendations: {e}")
     st.stop()
 
 # Dashboard page
 st.title("🔍 WAF Assessment Dashboard")
-st.markdown("**💡 Use the sidebar (←) to understand each metric and see recommended actions**")
+st.markdown(
+    "**💡 Use the sidebar (←) to understand each metric and see recommended actions**"
+)
 st.markdown("---")
 
 # Read-only display of catalog, schema, and latest run
@@ -1604,11 +1763,16 @@ with _info_col3:
         st.metric("Last Reload", "No data yet")
 with _info_col4:
     if _run_info:
-        _rid  = _run_info.get("run_id", "—")
-        _ok   = _run_info.get("tables_succeeded", 0)
+        _rid = _run_info.get("run_id", "—")
+        _ok = _run_info.get("tables_succeeded", 0)
         _fail = _run_info.get("tables_failed", 0)
         _icon = "✅" if _run_info.get("status") == "success" else "⚠️"
-        st.metric("Run", f"{_icon} #{_rid}", delta=f"{_ok}/{_ok+_fail} tables", delta_color="off")
+        st.metric(
+            "Run",
+            f"{_icon} #{_rid}",
+            delta=f"{_ok}/{_ok+_fail} tables",
+            delta_color="off",
+        )
     else:
         st.metric("Run", "—")
 
@@ -1621,44 +1785,60 @@ with col2:
         _catalog = os.environ.get("WAF_CATALOG", "useast1")
 
         if not JOB_ID:
-            st.error("❌ Reload job not configured (WAF_JOB_ID missing). Re-run install.ipynb.")
+            st.error(
+                "❌ Reload job not configured (WAF_JOB_ID missing). Re-run install.ipynb."
+            )
         else:
             _wc = _get_ws_client()
             if not _wc:
-                st.error("❌ Databricks SDK could not initialise. Check app configuration.")
+                st.error(
+                    "❌ Databricks SDK could not initialise. Check app configuration."
+                )
             else:
                 try:
-                    _resp    = _wc.jobs.run_now(
+                    _resp = _wc.jobs.run_now(
                         job_id=int(JOB_ID),
                         notebook_params={"catalog": _catalog},
                     )
-                    _run_id  = _resp.run_id
-                    _run_url = f"{INSTANCE_URL}/?o={WORKSPACE_ID}#job/{JOB_ID}/run/{_run_id}"
+                    _run_id = _resp.run_id
+                    _run_url = (
+                        f"{INSTANCE_URL}/?o={WORKSPACE_ID}#job/{JOB_ID}/run/{_run_id}"
+                    )
                     _status_ph = st.empty()
 
                     # Poll until terminal state (up to 5 min)
                     _final_state = None
                     for _attempt in range(60):
                         _time.sleep(5)
-                        _run     = _wc.jobs.runs.get(run_id=_run_id)
-                        _lc      = _run.state.life_cycle_state.value if (
-                            _run.state and _run.state.life_cycle_state) else ""
+                        _run = _wc.jobs.runs.get(run_id=_run_id)
+                        _lc = (
+                            _run.state.life_cycle_state.value
+                            if (_run.state and _run.state.life_cycle_state)
+                            else ""
+                        )
                         _status_ph.info(
                             f"⏳ Reload running ({(_attempt+1)*5}s elapsed) — "
                             f"[View job run ↗]({_run_url})"
                         )
                         if _lc == "TERMINATED":
-                            _final_state = _run.state.result_state.value if (
-                                _run.state and _run.state.result_state) else "UNKNOWN"
+                            _final_state = (
+                                _run.state.result_state.value
+                                if (_run.state and _run.state.result_state)
+                                else "UNKNOWN"
+                            )
                             break
 
                     _status_ph.empty()
                     if _final_state == "SUCCESS":
                         st.success(f"✅ Reload complete — [View job run ↗]({_run_url})")
                     elif _final_state is None:
-                        st.warning(f"⏳ Reload still running — [Check status ↗]({_run_url})")
+                        st.warning(
+                            f"⏳ Reload still running — [Check status ↗]({_run_url})"
+                        )
                     else:
-                        st.error(f"❌ Reload failed ({_final_state}) — [View job run ↗]({_run_url})")
+                        st.error(
+                            f"❌ Reload failed ({_final_state}) — [View job run ↗]({_run_url})"
+                        )
                 except Exception as _exc:
                     st.error(f"❌ Failed to trigger reload: {_exc}")
 
@@ -1669,20 +1849,20 @@ st.markdown("---")
 # View Recommendations + View Progress (open in new tab)
 _rec_col1, _rec_col2, _rec_col3, _rec_col4 = st.columns([1, 2, 2, 1])
 _link_style = (
-    'display:inline-block;width:100%;padding:0.5rem 1rem;border-radius:0.5rem;'
-    'background-color:#f0f2f6;color:#31333f;text-align:center;text-decoration:none;'
-    'font-weight:500;border:1px solid rgba(49,51,63,0.2);box-sizing:border-box;'
+    "display:inline-block;width:100%;padding:0.5rem 1rem;border-radius:0.5rem;"
+    "background-color:#f0f2f6;color:#31333f;text-align:center;text-decoration:none;"
+    "font-weight:500;border:1px solid rgba(49,51,63,0.2);box-sizing:border-box;"
 )
 with _rec_col2:
     st.markdown(
         f'<a href="?page=recommendations" target="_blank" rel="noopener noreferrer" style="{_link_style}">'
-        '📋 View Recommendations (Not Met)</a>',
+        "📋 View Recommendations (Not Met)</a>",
         unsafe_allow_html=True,
     )
 with _rec_col3:
     st.markdown(
         f'<a href="?page=progress" target="_blank" rel="noopener noreferrer" style="{_link_style}">'
-        '📈 View Progress</a>',
+        "📈 View Progress</a>",
         unsafe_allow_html=True,
     )
 
@@ -1690,7 +1870,9 @@ st.markdown("---")
 
 # Dashboard access — Open Dashboard + Ask Genie (always show both; Genie URL from install)
 _dashboard_direct_url = f"{INSTANCE_URL}/sql/dashboardsv3/{DASHBOARD_ID}"
-_genie_url = GENIE_URL or f"{INSTANCE_URL}/genie"  # fallback to Genie home if not set by install
+_genie_url = (
+    GENIE_URL or f"{INSTANCE_URL}/genie"
+)  # fallback to Genie home if not set by install
 _btn_col1, _btn_col2, _btn_col3, _btn_col4 = st.columns([1, 2, 2, 1])
 with _btn_col2:
     st.link_button(
@@ -1705,7 +1887,9 @@ with _btn_col3:
         use_container_width=True,
     )
 if not GENIE_URL:
-    st.caption("💡 **Ask Genie**: Re-run install to link the WAF Genie room; the button above opens Genie.")
+    st.caption(
+        "💡 **Ask Genie**: Re-run install to link the WAF Genie room; the button above opens Genie."
+    )
 
 st.info(
     "**First time?** The dashboard below may show a Databricks login screen inside the iframe. "

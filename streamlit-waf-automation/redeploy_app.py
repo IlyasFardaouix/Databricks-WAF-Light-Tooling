@@ -11,9 +11,11 @@ Usage:
 
 Requires: DATABRICKS_HOST and DATABRICKS_TOKEN in environment (or ~/.databrickscfg).
 """
+
 import os
 import sys
 import requests
+
 
 def get_app_name_from_args() -> str:
     """
@@ -29,6 +31,7 @@ def get_app_name_from_args() -> str:
         print(__doc__)
         sys.exit(1)
     return sys.argv[1].strip()
+
 
 def get_workspace_path_from_args() -> str:
     """
@@ -48,6 +51,7 @@ def get_workspace_path_from_args() -> str:
         print("Pass workspace_path as second argument if different.")
     return workspace_path
 
+
 def get_databricks_credentials() -> dict:
     """
     Extract Databricks host and token from environment variables.
@@ -64,6 +68,7 @@ def get_databricks_credentials() -> dict:
         print("Set DATABRICKS_HOST and DATABRICKS_TOKEN (or use ~/.databrickscfg).")
         sys.exit(1)
     return {"host": host, "token": token}
+
 
 def redeploy_app(app_name: str, workspace_path: str, host: str, token: str) -> None:
     """
@@ -83,7 +88,10 @@ def redeploy_app(app_name: str, workspace_path: str, host: str, token: str) -> N
     try:
         resp = requests.post(
             url=f"{api_url}/api/2.0/apps/{app_name}/deployments",
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
             json={"source_code_path": source_code_path},
             timeout=120,
         )
@@ -97,6 +105,7 @@ def redeploy_app(app_name: str, workspace_path: str, host: str, token: str) -> N
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {e}")
         sys.exit(1)
+
 
 def main() -> None:
     """
@@ -112,6 +121,7 @@ def main() -> None:
     workspace_path = get_workspace_path_from_args()
     host, token = get_databricks_credentials()
     redeploy_app(app_name, workspace_path, host, token)
+
 
 if __name__ == "__main__":
     main()
