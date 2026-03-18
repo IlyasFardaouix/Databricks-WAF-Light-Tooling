@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
 
+
 class Pillar(str, Enum):
     """WAF Pillar enumeration"""
     RELIABILITY = "reliability"
@@ -31,7 +32,7 @@ class Metric(BaseModel):
     score_percentage: float = Field(..., description="Current score percentage")
     threshold_percentage: float = Field(..., description="Threshold percentage")
     threshold_met: bool = Field(..., description="Whether threshold is met")
-    implemented: MetricStatus = Field(..., description="Implementation status (Pass/Fail)")
+    implemented: str = Field(..., description="Implementation status (Pass/Fail)")
     current_percentage: Optional[float] = Field(None, description="Current percentage value")
     
     class Config:
@@ -64,7 +65,7 @@ class PrincipleScore(BaseModel):
 
 class PillarScore(BaseModel):
     """Pillar-level assessment score"""
-    pillar: Pillar = Field(..., description="Pillar name")
+    pillar: str = Field(..., description="Pillar name")
     completion_percent: float = Field(..., description="Overall completion percentage")
     metrics: List[Metric] = Field(default_factory=list, description="Individual metrics")
     principles: List[PrincipleScore] = Field(default_factory=list, description="Principle-level scores")
@@ -82,10 +83,10 @@ class PillarScore(BaseModel):
 
 class WAFScores(BaseModel):
     """Complete WAF assessment scores"""
-    reliability: PillarScore = Field(..., description="Reliability pillar score")
-    governance: PillarScore = Field(..., description="Governance pillar score")
-    cost: PillarScore = Field(..., description="Cost pillar score")
-    performance: PillarScore = Field(..., description="Performance pillar score")
+    reliability: PillarScore
+    governance: PillarScore
+    cost: PillarScore
+    performance: PillarScore
     summary: Dict[str, float] = Field(default_factory=dict, description="Summary scores")
     timestamp: datetime = Field(default_factory=datetime.now, description="Assessment timestamp")
     
@@ -115,7 +116,7 @@ class WAFScores(BaseModel):
 class Recommendation(BaseModel):
     """Actionable recommendation for improving WAF scores"""
     waf_id: str = Field(..., description="WAF identifier")
-    pillar: Pillar = Field(..., description="Pillar name")
+    pillar: str = Field(..., description="Pillar name")
     issue: str = Field(..., description="Issue description")
     recommendation: str = Field(..., description="Recommendation text")
     action_items: List[str] = Field(default_factory=list, description="Action items")
